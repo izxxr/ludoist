@@ -78,33 +78,26 @@ class MainMenu(Scene):
         img_button_exit_hover = self.resources.get("button_exit_hover", 60, 60)
 
         self._batch = pyglet.graphics.Batch()
-        self._button_play = pyglet.gui.PushButton(
-            x=(self.window.width - img_button_play.width) // 2,
-            y=(self.window.height - img_button_play.height) // 2,
-            depressed=img_button_play,
-            pressed=img_button_play_clicked,
-            hover=img_button_play_hover,
-            batch=self._batch,
-        )
-        self._button_settings = pyglet.gui.PushButton(
-            x=(self.window.width - img_button_settings.width) // 2 - 55,
-            y=(self.window.height - img_button_settings.height) // 2 - 120,
-            depressed=img_button_settings,
-            pressed=img_button_settings,
-            hover=img_button_settings_hover,
-            batch=self._batch,
-        )
-        self._button_exit = pyglet.gui.PushButton(
-            x=(self.window.width - img_button_exit.width) // 2 + 55,
-            y=(self.window.height - img_button_exit.height) // 2 - 120,
-            depressed=img_button_exit,
-            pressed=img_button_exit,
-            hover=img_button_exit_hover,
-            batch=self._batch,
-        )
-        self._button_play.set_handler("on_press", self._handle_play_press)
-        self._button_exit.set_handler("on_press", self._handle_exit_press)
-        self._button_settings.set_handler("on_press", self._handle_settings_press)
+        self._buttons = [
+            pyglet.gui.PushButton(x=(self.window.width - img_button_play.width) // 2,
+                                  y=(self.window.height - img_button_play.height) // 2,
+                                  depressed=img_button_play, pressed=img_button_play_clicked,
+                                  hover=img_button_play_hover, batch=self._batch),
+
+            pyglet.gui.PushButton(x=(self.window.width - img_button_settings.width) // 2 - 55,
+                                  y=(self.window.height - img_button_settings.height) // 2 - 120,
+                                  depressed=img_button_settings, pressed=img_button_settings,
+                                  hover=img_button_settings_hover, batch=self._batch),
+
+            pyglet.gui.PushButton(x=(self.window.width - img_button_exit.width) // 2 + 55,
+                                  y=(self.window.height - img_button_exit.height) // 2 - 120,
+                                  depressed=img_button_exit, pressed=img_button_exit,
+                                  hover=img_button_exit_hover, batch=self._batch),
+        ]
+
+        self._buttons[0].set_handler("on_press", self._handle_play_press)
+        self._buttons[1].set_handler("on_press", self._handle_settings_press)
+        self._buttons[2].set_handler("on_press", self._handle_exit_press)
 
     def get_name(self) -> str:
         return "main_menu"
@@ -120,14 +113,12 @@ class MainMenu(Scene):
         self.window.scenes.setup_scene(Settings)
 
     def setup(self) -> None:
-        self.window.push_handlers(self._button_play)
-        self.window.push_handlers(self._button_settings)
-        self.window.push_handlers(self._button_exit)
+        for button in self._buttons:
+            self.window.push_handlers(button)
 
     def cleanup(self) -> None:
-        self.window.remove_handlers(self._button_play)
-        self.window.remove_handlers(self._button_settings)
-        self.window.remove_handlers(self._button_exit)
+        for button in self._buttons:
+            self.window.remove_handlers(button)
 
     def draw(self) -> None:
         background = self.resources.get("background_main_menu")
@@ -148,30 +139,19 @@ class Settings(Scene):
         self._batch = pyglet.graphics.Batch()
         self._settings_objects = []
         self._settings_y = 620
-        self._heading = create_heading("Display Settings", window, self._batch)
-        self._rect_hl_restart_needed = pyglet.shapes.Rectangle(
-            x=self.window.width // 2 - 275,
-            y=250,
-            width=550,
-            height=100,
-            color=(255, 0, 0, 80),
-            batch=self._batch,
-        )
-        self._text_restart_needed = pyglet.text.Label(
-            "Restart is needed for changes to apply.",
-            font_name="Poppins",
-            font_size=20,
-            bold=True,
-            stretch=True,
-            batch=self._batch,
-            anchor_x="center",
-            anchor_y="center",
-            align="center",
-            x=self.window.width // 2,
-            y=300,
-        )
-        self._text_restart_needed.visible = self.__class__._show_restart_message
-        self._rect_hl_restart_needed.visible = self.__class__._show_restart_message
+        self._shapes = [
+            pyglet.shapes.Rectangle(x=self.window.width // 2 - 275, y=250, width=550,
+                                    height=100, color=(255, 0, 0, 80), batch=self._batch),
+        ]
+        self._labels = [
+            create_heading("Display Settings", window, self._batch),
+            pyglet.text.Label("Restart is needed for changes to apply.", font_name="Poppins",
+                              font_size=20, bold=True, stretch=True, batch=self._batch,
+                              anchor_x="center", anchor_y="center", align="center",
+                              x=self.window.width // 2, y=300)
+        ]
+        self._labels[1].visible = self.__class__._show_restart_message
+        self._shapes[0].visible = self.__class__._show_restart_message
         self._add_toggle_setting("Fullscreen", self._handle_fullscreen, self.window.cfg.fullscreen)
         self._draw_back_button()
 
@@ -207,8 +187,8 @@ class Settings(Scene):
     def _handle_fullscreen(self, value: bool) -> None:
         self.window.cfg.update({"fullscreen": value})
         self.__class__._show_restart_message = new = not self.__class__._show_restart_message
-        self._text_restart_needed.visible = new
-        self._rect_hl_restart_needed.visible = new
+        self._labels[1].visible = new
+        self._shapes[0].visible = new
 
     def _draw_back_button(self) -> None:
         img_button_back = self.resources.get("button_back", 70, 70)
@@ -261,58 +241,33 @@ class GamesManager(Scene):
 
         self._games_ui = []
         self._batch = pyglet.graphics.Batch()
-        self._heading = create_heading("Active Games", window, self._batch)
-        self._games_box = pyglet.shapes.Box(
-            x=(window.width - 800) // 2,
-            y=180,
-            width=800,
-            height=450,
-            color=(53, 55, 67, 255),
-            thickness=3,
-            batch=self._batch,
-        )
-        self._ping_text = pyglet.text.Label(
-            "",
-            font_name="Poppins",
-            font_size=18,
-            bold=True,
-            color=(53, 55, 67, 255),
-            batch=self._batch,
-            x=window.width - 380,
-            y=650,
-        )
-        self._loading_games_text = pyglet.text.Label(
-            "",
-            font_name="Poppins",
-            font_size=18,
-            bold=True,
-            color=(53, 55, 67, 150),
-            batch=self._batch,
-            anchor_x="center",
-            align="center",
-            x=self.window.width // 2,
-            y=550,
-        )
+        self._shapes = [
+            pyglet.shapes.Box(x=(window.width - 800) // 2, y=180, width=800, height=450,
+                              color=(53, 55, 67, 255), thickness=3, batch=self._batch),
+        ]
+        self._labels = [
+            create_heading("Active Games", window, self._batch),
+            pyglet.text.Label("", font_name="Poppins", font_size=18, bold=True,
+                              color=(53, 55, 67, 255), batch=self._batch,
+                              x=window.width - 380, y=650),
+
+            pyglet.text.Label("", font_name="Poppins", font_size=18, bold=True,
+                              color=(53, 55, 67, 150), batch=self._batch, anchor_x="center",
+                              align="center", x=self.window.width // 2, y=550),
+        ]
+        self._buttons = [
+            pyglet.gui.PushButton(x=(window.width - img_button_back.width) // 2 - 40, y=80,
+                                  depressed=img_button_back, pressed=img_button_back,
+                                  hover=img_button_back_hover, batch=self._batch),
+
+            pyglet.gui.PushButton(x=((window.width - img_button_create_game.width) // 2) + 40,
+                                  y=80, depressed=img_button_create_game, pressed=img_button_create_game,
+                                  hover=img_button_create_game_hover, batch=self._batch),
+        ]
 
         self._populate_games()
-        self._button_back = pyglet.gui.PushButton(
-            x=(window.width - img_button_back.width) // 2 - 40,
-            y=80,
-            depressed=img_button_back,
-            pressed=img_button_back,
-            hover=img_button_back_hover,
-            batch=self._batch,
-        )
-        self._button_create_game = pyglet.gui.PushButton(
-            x=((window.width - img_button_create_game.width) // 2) + 40,
-            y=80,
-            depressed=img_button_create_game,
-            pressed=img_button_create_game,
-            hover=img_button_create_game_hover,
-            batch=self._batch,
-        )
-        self._button_create_game.set_handler("on_press", self._handle_create_game_press)
-        self._button_back.set_handler("on_press", self._handle_back_press)
+        self._buttons[0].set_handler("on_press", self._handle_back_press)
+        self._buttons[1].set_handler("on_press", self._handle_create_game_press)
 
     def _handle_create_game_press(self) -> None:
         self.window.scenes.setup_scene(CreateGame)
@@ -321,18 +276,19 @@ class GamesManager(Scene):
         self.window.scenes.setup_scene(MainMenu)
 
     def _populate_games(self) -> None:
+        loading_text = self._labels[2]
         if len(self.window.games) == 0:
-            self._loading_games_text.text = "No active games yet"
+            loading_text.text = "No active games yet"
         else:
-            self._loading_games_text.text = f"{len(self.window.games)} games available"
+            loading_text.text = f"{len(self.window.games)} games available"
 
     def setup(self) -> None:
-        self.window.push_handlers(self._button_back)
-        self.window.push_handlers(self._button_create_game)
+        for button in self._buttons:
+            self.window.push_handlers(button)
 
     def cleanup(self) -> None:
-        self.window.remove_handlers(self._button_back)
-        self.window.remove_handlers(self._button_create_game)
+        for button in self._buttons:
+            self.window.remove_handlers(button)
 
     def draw(self) -> None:
         background = self.resources.get("background_main_menu")
@@ -340,7 +296,7 @@ class GamesManager(Scene):
 
         lat = self.window.connection.latency
         ping = 0 if lat == -1 else round(lat * 1000)
-        self._ping_text.text = f"Ping: {ping}ms"
+        self._labels[1].text = f"Ping: {ping}ms"
 
         if ping >= 0 and ping < 30:
             color = (50, 168, 82, 255)
@@ -351,7 +307,7 @@ class GamesManager(Scene):
         else:
             color = (255, 0, 0, 255)
 
-        self._ping_text.color = color
+        self._labels[1].color = color
         self._batch.draw()
 
 
@@ -367,52 +323,36 @@ class CreateGame(Scene):
         img_button_create_game_hover = self.resources.get("button_create_game_hover", 70, 70)
 
         self._batch = pyglet.graphics.Batch()
-        self._heading = create_heading("Create Game", window, self._batch)
-        self._label_name = pyglet.text.Label(
-            "Room Name",
-            font_name="Poppins",
-            font_size=24,
-            bold=True,
-            batch=self._batch,
-            anchor_x="center",
-            anchor_y="center",
-            align="center",
-            color=(53, 55, 67, 255),
-            x=self.window.width // 2 - 200,
-            y=595,
-        )
-        self._text_entry_name = t = pyglet.gui.TextEntry(
-            f"Ludo Match {random.randint(1000, 9999)}",
-            x=self.window.width // 2 - 50,
-            y=570,
-            width=350,
-            batch=self._batch,
-        )
+        self._labels = [
+            create_heading("Create Game", window, self._batch),
+            pyglet.text.Label("Room Name", font_name="Poppins", font_size=24, bold=True,
+                              batch=self._batch, anchor_x="center", anchor_y="center",
+                              align="center", color=(53, 55, 67, 255),
+                              x=self.window.width // 2 - 200, y=595),
+        ]
+        self._widgets = [
+            pyglet.gui.TextEntry(f"Ludo Match {random.randint(1000, 9999)}",
+                                 x=self.window.width // 2 - 50, y=570, width=350,
+                                 batch=self._batch),
+
+            pyglet.gui.PushButton(x=(window.width - img_button_back.width) // 2 - 40, y=450,
+                                  depressed=img_button_back, pressed=img_button_back,
+                                  hover=img_button_back_hover, batch=self._batch),
+
+            pyglet.gui.PushButton(x=((window.width - img_button_create_game.width) // 2) + 40,
+                                  y=450, depressed=img_button_create_game, pressed=img_button_create_game,
+                                  hover=img_button_create_game_hover, batch=self._batch),
+        ]
+        t = self._widgets[0]
         t._pad = 4
         t.height = 50
         t._doc.set_style(0, len(t._doc.text), dict(font_size=24))
 
-        self._button_back = pyglet.gui.PushButton(
-            x=(window.width - img_button_back.width) // 2 - 40,
-            y=450,
-            depressed=img_button_back,
-            pressed=img_button_back,
-            hover=img_button_back_hover,
-            batch=self._batch,
-        )
-        self._button_create_game = pyglet.gui.PushButton(
-            x=((window.width - img_button_create_game.width) // 2) + 40,
-            y=450,
-            depressed=img_button_create_game,
-            pressed=img_button_create_game,
-            hover=img_button_create_game_hover,
-            batch=self._batch,
-        )
-        self._button_create_game.set_handler("on_press", self._handle_create_game_press)
-        self._button_back.set_handler("on_press", self._handle_back_press)
+        self._widgets[1].set_handler("on_press", self._handle_back_press)
+        self._widgets[2].set_handler("on_press", self._handle_create_game_press)
 
     def _handle_create_game_press(self) -> None:
-        self.window.connection.create_game(name=self._text_entry_name.value)
+        self.window.connection.create_game(name=self._widgets[0].value)
         self.window.refresh_games()
         self.window.scenes.setup_scene(GamesManager)
 
@@ -420,14 +360,12 @@ class CreateGame(Scene):
         self.window.scenes.setup_scene(GamesManager)
 
     def setup(self) -> None:
-        self.window.push_handlers(self._button_back)
-        self.window.push_handlers(self._button_create_game)
-        self.window.push_handlers(self._text_entry_name)
+        for widget in self._widgets:
+            self.window.push_handlers(widget)
 
     def cleanup(self) -> None:
-        self.window.remove_handlers(self._button_back)
-        self.window.remove_handlers(self._button_create_game)
-        self.window.remove_handlers(self._text_entry_name)
+        for widget in self._widgets:
+            self.window.remove_handlers(widget)
 
     def draw(self) -> None:
         background = self.resources.get("background_main_menu")
