@@ -102,14 +102,11 @@ class Connection(threading.Thread):
         try:
             packet = self._sock.recv(1024)
         except (ConnectionResetError, ConnectionAbortedError) as e:
-            if isinstance(e, ConnectionResetError) and not self._running:
-                return
-            if isinstance(e, ConnectionAbortedError):
-                return self._close()
+            if self._running:
+                _log.error(f"Unexpected connection abortion with {self._addr} - closing connection")
+                self._close()
 
-            # if self._running is True then the connection
-            # reset was unexpected.
-            raise
+            return
 
         op, data = self._process_packet(packet)
 
@@ -132,15 +129,16 @@ class Connection(threading.Thread):
         while self._running:
             received = self._ping_recv.wait(timeout=self._ping_interval)
 
-            if not received:
+            if not received and self._running:
                 _log.error(f"No PING received from {self._addr} - closing connection")
                 msg = responses.make_error_message(responses.ERR_PING_TIMEOUT, "no PING received")
                 self._send_data(msg)
                 return self._close()
 
-            _log.debug(f"Received PING from {self._addr}")
-            self._send_data(responses.make_pong_message())
-            self._ping_recv.clear()
+            if self._running:
+                _log.debug(f"Received PING from {self._addr}")
+                self._send_data(responses.make_pong_message())
+                self._ping_recv.clear()
 
     def _setup(self) -> None:
         self._ping_recv.clear()

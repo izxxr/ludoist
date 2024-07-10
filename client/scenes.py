@@ -75,6 +75,7 @@ class MainMenu(Scene):
             hover=img_button_exit_hover,
             batch=self._batch,
         )
+        self._button_play.set_handler("on_press", self._handle_play_press)
         self._button_exit.set_handler("on_press", self._handle_exit_press)
         self._button_settings.set_handler("on_press", self._handle_settings_press)
 
@@ -83,6 +84,9 @@ class MainMenu(Scene):
 
     def _handle_exit_press(self) -> None:
         self.window.close()
+
+    def _handle_play_press(self) -> None:
+        self.window.scenes.setup_scene(GamesManager)
 
     def _handle_settings_press(self) -> None:
         self.window.scenes.setup_scene(Settings)
@@ -233,4 +237,114 @@ class Settings(Scene):
         background = self.resources.get("background_main_menu")
         background.blit(0, 0)
 
+        self._batch.draw()
+
+
+class GamesManager(Scene):
+    """The games manager menu showing all the ongoing games."""
+    def __init__(self, window: LudoistWindow) -> None:
+        super().__init__(window)
+
+        img_button_back = self.resources.get("button_back", 70, 70)
+        img_button_back_hover = self.resources.get("button_back_hover", 70, 70)
+
+        self._games_ui = []
+        self._batch = pyglet.graphics.Batch()
+        self._rect_hl_active_games = pyglet.shapes.Rectangle(
+            x=self.window.width // 2 - 200,
+            y=680,
+            width=400,
+            height=100,
+            color=(53, 55, 67, 150),
+            batch=self._batch,
+        )
+        self._text_active_games = pyglet.text.Label(
+            "Active Games",
+            font_name="Poppins",
+            font_size=26,
+            bold=True,
+            stretch=True,
+            batch=self._batch,
+            anchor_x="center",
+            anchor_y="center",
+            align="center",
+            x=self.window.width // 2,
+            y=730,
+        )
+        self._games_box = pyglet.shapes.Box(
+            x=(window.width - 800) // 2,
+            y=180,
+            width=800,
+            height=450,
+            color=(53, 55, 67, 255),
+            thickness=3,
+            batch=self._batch,
+        )
+        self._ping_text = pyglet.text.Label(
+            "",
+            font_name="Poppins",
+            font_size=18,
+            bold=True,
+            color=(53, 55, 67, 255),
+            batch=self._batch,
+            x=window.width - 380,
+            y=650,
+        )
+        self._loading_games_text = pyglet.text.Label(
+            "",
+            font_name="Poppins",
+            font_size=18,
+            bold=True,
+            color=(53, 55, 67, 150),
+            batch=self._batch,
+            anchor_x="center",
+            align="center",
+            x=self.window.width // 2,
+            y=550,
+        )
+
+        self._populate_games()
+        self._button_back = pyglet.gui.PushButton(
+            x=(window.width - img_button_back.width) // 2,
+            y=80,
+            depressed=img_button_back,
+            pressed=img_button_back,
+            hover=img_button_back_hover,
+            batch=self._batch,
+        )
+        self._button_back.set_handler("on_press", self._handle_back_press)
+
+    def _handle_back_press(self) -> None:
+        self.window.scenes.setup_scene(MainMenu)
+
+    def _populate_games(self) -> None:
+        if len(self.window.games) == 0:
+            self._loading_games_text.text = "No active games yet"
+        else:
+            self._games_ui = []
+
+    def setup(self) -> None:
+        self.window.push_handlers(self._button_back)
+
+    def cleanup(self) -> None:
+        self.window.remove_handlers(self._button_back)
+
+    def draw(self) -> None:
+        background = self.resources.get("background_main_menu")
+        background.blit(0, 0)
+
+        lat = self.window.connection.latency
+        ping = 0 if lat == -1 else round(lat * 1000)
+        self._ping_text.text = f"Ping: {ping}ms"
+
+        if ping >= 0 and ping < 30:
+            color = (50, 168, 82, 255)
+        elif ping > 30 and ping < 100:
+            color = (180, 245, 2, 255)
+        elif ping > 100 and ping < 200:
+            color = (255, 89, 0, 255)
+        else:
+            color = (255, 0, 0, 255)
+
+        self._ping_text.color = color
         self._batch.draw()

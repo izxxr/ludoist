@@ -25,6 +25,7 @@ from __future__ import annotations
 from client.resource_manager import ResourceManager
 from client.scenes_manager import ScenesManager
 from client.config import Configuration
+from client.connection import Connection
 from client import scenes
 
 import pyglet
@@ -49,6 +50,16 @@ class LudoistWindow(pyglet.window.Window):
         self.resources = ResourceManager("resources", self)
         self.scenes = ScenesManager(self)
         self.scenes.setup_scene(scenes.MainMenu)
+        self.connection = Connection(self)
+        self.connection.start()
+        self.refresh_games()
+
+    def refresh_games(self) -> None:
+        self.games = self.connection.list_games()
+
+    def on_close(self):
+        self.connection._close()
+        super().close()
 
     def on_draw(self):
         self.clear()

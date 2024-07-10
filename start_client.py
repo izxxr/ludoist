@@ -23,8 +23,11 @@
 from __future__ import annotations
 
 from client.window import LudoistWindow
-from pyglet import app
+
+import pyglet
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 window = LudoistWindow()
-
-app.run()
+pyglet.app.run()
