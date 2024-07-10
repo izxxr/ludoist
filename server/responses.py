@@ -22,7 +22,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from common.games import Game
 
 __all__ = (
     "OP_CODE_ERROR",
@@ -72,3 +75,6 @@ def make_error_message(error_code: int, message: str):
 
 def make_pong_message():
     return _make_message(OP_CODE_PONG)
+
+def make_list_games_message(games: List[Game]):
+    return _make_message(OP_CODE_LIST_GAMES, [g.get_overview() for g in games])

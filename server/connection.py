@@ -101,9 +101,11 @@ class Connection(threading.Thread):
     def _listen(self) -> None:
         try:
             packet = self._sock.recv(1024)
-        except ConnectionResetError:
-            if not self._running:
+        except (ConnectionResetError, ConnectionAbortedError) as e:
+            if isinstance(e, ConnectionResetError) and not self._running:
                 return
+            if isinstance(e, ConnectionAbortedError):
+                return self._close()
 
             # if self._running is True then the connection
             # reset was unexpected.
@@ -116,6 +118,15 @@ class Connection(threading.Thread):
 
         if op == responses.OP_CODE_PING:
             return self._ping_recv.set()
+
+        if op == responses.OP_CODE_REQUEST_GAMES:
+            games = self._server.list_games()
+            msg = responses.make_list_games_message(games)
+            return self._send_data(msg)
+
+        msg = responses.make_error_message(responses.ERR_INVALID_DATA_FORMAT, "invalid OP code")
+        self._send_data(msg)
+        self._inc_violation()
 
     def _keep_alive(self) -> None:
         while self._running:

@@ -22,7 +22,9 @@
 
 from __future__ import annotations
 
+from typing import List, Optional, Dict, Tuple
 from server.connection import Connection
+from common.games import Game
 
 import socket
 import logging
@@ -50,15 +52,36 @@ class LudoistServer:
     def __init__(self) -> None:
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.bind((HOST, PORT))
-        self._connections = {}
+        self._connections: Dict[Tuple[str, int], Connection] = {}
+        self._games: Dict[str, Game] = {}
         self._running = False
+
+    def list_games(self) -> List[Game]:
+        """The list of ongoing games."""
+        return list(self._games.values())
+
+    def get_game(self, game_id: str) -> Optional[Game]:
+        """Get a game by its ID."""
+        return self._games.get(game_id)
+
+    def remove_game(self, game_id: str) -> Optional[Game]:
+        """Remove a game."""
+        return self._games.pop(game_id, None)
+
+    def add_game(self, game: Game) -> None:
+        """Add a game."""
+        self._games[game.id] = game
 
     def start(self) -> None:
         """Starts the server and accepting clients."""
         try:
             self._runner()
         except KeyboardInterrupt:
-            _log.info("Closing socket...")
+            _log.info("Closing connections and socket...")
+
+            for connection in self._connections.values():
+                connection._close()
+
             self._sock.detach()
             self._sock.close()
 
