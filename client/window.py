@@ -55,11 +55,12 @@ class LudoistWindow(pyglet.window.Window):
         self.refresh_games()
 
     def refresh_games(self) -> None:
+        self.connection.wait_until_ready()
         self.games = self.connection.list_games()
 
     def on_close(self):
         self.connection._close()
-        super().close()
+        super().on_close()
 
     def on_draw(self):
         self.clear()

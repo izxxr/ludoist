@@ -119,7 +119,7 @@ class Game(Schema):
     https://gist.github.com/izxxr/dfb75f6aa4440faf1c948d37942385fd
     """
 
-    password_protected = fields.Boolean(default=None)
+    password_protected = fields.Boolean(default=None, none=True)
     """Whether the game is protected by password (only in overviews)"""
 
     def is_joinable(self):

@@ -59,6 +59,7 @@ class Connection(threading.Thread):
         self._pong_recv = threading.Event()
         self._futures: Dict[int, List[concurrent.futures.Future[Any]]] = {}
         self._running = False
+        self._ready = threading.Event()
         self.latency = -1
 
     def _recv_packet(self) -> Tuple[int, Any]:
@@ -84,6 +85,7 @@ class Connection(threading.Thread):
 
             self._ping_interval = payload["ping_interval"]
             self._keep_alive_thread.start()
+            self._ready.set()
 
         if op == responses.OP_CODE_PONG:
             self._pong_recv.set()
@@ -96,7 +98,7 @@ class Connection(threading.Thread):
     def _send_data(self, op_code: int, data: Any = None) -> None:
         msg = {"op": op_code}
         if data is not None:
-            msg["data"] = data
+            msg["d"] = data
 
         self._sock.send(json.dumps(msg).encode())
 
@@ -120,6 +122,7 @@ class Connection(threading.Thread):
     def _close(self) -> None:
         self._running = False
         self._sock.close()
+        self._ready.clear()
 
     def _handler(self) -> None:
         self._running = True
@@ -144,8 +147,18 @@ class Connection(threading.Thread):
 
         return result
 
+    def wait_until_ready(self) -> None:
+        """Waits until connection has been established and handshake done"""
+        self._ready.wait()
+
     def list_games(self) -> List[Game]:
         """Request the server to send the list of ongoing games."""
         self._send_data(responses.OP_CODE_REQUEST_GAMES)
         data = self._wait_for(responses.OP_CODE_LIST_GAMES)
         return [Game(g) for g in data]
+
+    def create_game(self, name: str) -> Game:
+        """Create a game."""
+        self._send_data(responses.OP_CODE_CREATE_GAME, data={"name": name, "players": []})
+        data = self._wait_for(responses.OP_CODE_GAME_CREATED)
+        return Game(data)

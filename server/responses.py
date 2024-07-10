@@ -47,10 +47,12 @@ OP_CODE_ERROR = 0
 OP_CODE_HELLO = 1
 OP_CODE_PONG  = 2
 OP_CODE_LIST_GAMES  = 3
+OP_CODE_CREATE_GAME = 4
 
 # OP code range sent by client: 20-39
 OP_CODE_PING = 20
 OP_CODE_REQUEST_GAMES = 21
+OP_CODE_GAME_CREATED = 22
 
 # Error codes
 ERR_UNKNOWN_ERROR = 1000
@@ -58,23 +60,28 @@ ERR_PING_TIMEOUT  = 1001
 ERR_UNPARSABLE_DATA = 1002
 ERR_INVALID_DATA_FORMAT  = 1003
 ERR_GAMES_LISTING_FAILED = 1004
+ERR_GAME_CREATION_FAILED = 1005
 
 
-def _make_message(op_code: int, data: Any = None):
-    msg = {"op": op_code, "d": data}
+def make_message(op_code: int, data: Any = None):
+    msg = {"op": op_code}
     if data is not None:
         msg["d"] = data
     return msg
 
 
 def make_hello_message(ping_interval: int):
-    return _make_message(OP_CODE_HELLO, {"ping_interval": ping_interval})
+    return make_message(OP_CODE_HELLO, {"ping_interval": ping_interval})
 
-def make_error_message(error_code: int, message: str):
-    return _make_message(OP_CODE_ERROR, {"message": message})
+def make_error_message(error_code: int, message: str, extras: Any = None):
+    data = {"message": message}
+    if extras:
+        data.update(extras)
+
+    return make_message(OP_CODE_ERROR, data)
 
 def make_pong_message():
-    return _make_message(OP_CODE_PONG)
+    return make_message(OP_CODE_PONG)
 
 def make_list_games_message(games: List[Game]):
-    return _make_message(OP_CODE_LIST_GAMES, [g.get_overview() for g in games])
+    return make_message(OP_CODE_LIST_GAMES, [g.get_overview() for g in games])

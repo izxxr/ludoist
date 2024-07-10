@@ -28,6 +28,7 @@ from client.scenes_manager import Scene
 from client.widgets import StateAwareToggle
 
 import pyglet
+import random
 
 if TYPE_CHECKING:
     from client.window import LudoistWindow
@@ -35,6 +36,32 @@ if TYPE_CHECKING:
 __all__ = (
     "MainMenu",
 )
+
+
+def create_heading(text: str, window: LudoistWindow, batch: pyglet.graphics.Batch):
+    rect = pyglet.shapes.Rectangle(
+        x=window.width // 2 - 200,
+        y=680,
+        width=400,
+        height=100,
+        color=(53, 55, 67, 150),
+        batch=batch,
+    )
+    label = pyglet.text.Label(
+        text,
+        font_name="Poppins",
+        font_size=26,
+        bold=True,
+        stretch=True,
+        batch=batch,
+        anchor_x="center",
+        anchor_y="center",
+        align="center",
+        x=window.width // 2,
+        y=730,
+    )
+    return rect, label
+
 
 class MainMenu(Scene):
     """Represents the main-menu scene."""
@@ -84,6 +111,7 @@ class MainMenu(Scene):
 
     def _handle_exit_press(self) -> None:
         self.window.close()
+        self.window.on_close()
 
     def _handle_play_press(self) -> None:
         self.window.scenes.setup_scene(GamesManager)
@@ -120,27 +148,7 @@ class Settings(Scene):
         self._batch = pyglet.graphics.Batch()
         self._settings_objects = []
         self._settings_y = 620
-        self._rect_hl_display_settings = pyglet.shapes.Rectangle(
-            x=self.window.width // 2 - 200,
-            y=680,
-            width=400,
-            height=100,
-            color=(53, 55, 67, 150),
-            batch=self._batch,
-        )
-        self._text_display_settings = pyglet.text.Label(
-            "Display Settings",
-            font_name="Poppins",
-            font_size=26,
-            bold=True,
-            stretch=True,
-            batch=self._batch,
-            anchor_x="center",
-            anchor_y="center",
-            align="center",
-            x=self.window.width // 2,
-            y=730,
-        )
+        self._heading = create_heading("Display Settings", window, self._batch)
         self._rect_hl_restart_needed = pyglet.shapes.Rectangle(
             x=self.window.width // 2 - 275,
             y=250,
@@ -242,35 +250,18 @@ class Settings(Scene):
 
 class GamesManager(Scene):
     """The games manager menu showing all the ongoing games."""
+
     def __init__(self, window: LudoistWindow) -> None:
         super().__init__(window)
 
         img_button_back = self.resources.get("button_back", 70, 70)
         img_button_back_hover = self.resources.get("button_back_hover", 70, 70)
+        img_button_create_game = self.resources.get("button_create_game", 70, 70)
+        img_button_create_game_hover = self.resources.get("button_create_game_hover", 70, 70)
 
         self._games_ui = []
         self._batch = pyglet.graphics.Batch()
-        self._rect_hl_active_games = pyglet.shapes.Rectangle(
-            x=self.window.width // 2 - 200,
-            y=680,
-            width=400,
-            height=100,
-            color=(53, 55, 67, 150),
-            batch=self._batch,
-        )
-        self._text_active_games = pyglet.text.Label(
-            "Active Games",
-            font_name="Poppins",
-            font_size=26,
-            bold=True,
-            stretch=True,
-            batch=self._batch,
-            anchor_x="center",
-            anchor_y="center",
-            align="center",
-            x=self.window.width // 2,
-            y=730,
-        )
+        self._heading = create_heading("Active Games", window, self._batch)
         self._games_box = pyglet.shapes.Box(
             x=(window.width - 800) // 2,
             y=180,
@@ -305,14 +296,26 @@ class GamesManager(Scene):
 
         self._populate_games()
         self._button_back = pyglet.gui.PushButton(
-            x=(window.width - img_button_back.width) // 2,
+            x=(window.width - img_button_back.width) // 2 - 40,
             y=80,
             depressed=img_button_back,
             pressed=img_button_back,
             hover=img_button_back_hover,
             batch=self._batch,
         )
+        self._button_create_game = pyglet.gui.PushButton(
+            x=((window.width - img_button_create_game.width) // 2) + 40,
+            y=80,
+            depressed=img_button_create_game,
+            pressed=img_button_create_game,
+            hover=img_button_create_game_hover,
+            batch=self._batch,
+        )
+        self._button_create_game.set_handler("on_press", self._handle_create_game_press)
         self._button_back.set_handler("on_press", self._handle_back_press)
+
+    def _handle_create_game_press(self) -> None:
+        self.window.scenes.setup_scene(CreateGame)
 
     def _handle_back_press(self) -> None:
         self.window.scenes.setup_scene(MainMenu)
@@ -321,13 +324,15 @@ class GamesManager(Scene):
         if len(self.window.games) == 0:
             self._loading_games_text.text = "No active games yet"
         else:
-            self._games_ui = []
+            self._loading_games_text.text = f"{len(self.window.games)} games available"
 
     def setup(self) -> None:
         self.window.push_handlers(self._button_back)
+        self.window.push_handlers(self._button_create_game)
 
     def cleanup(self) -> None:
         self.window.remove_handlers(self._button_back)
+        self.window.remove_handlers(self._button_create_game)
 
     def draw(self) -> None:
         background = self.resources.get("background_main_menu")
@@ -348,3 +353,84 @@ class GamesManager(Scene):
 
         self._ping_text.color = color
         self._batch.draw()
+
+
+class CreateGame(Scene):
+    """Game creation screen."""
+
+    def __init__(self, window: LudoistWindow) -> None:
+        super().__init__(window)
+
+        img_button_back = self.resources.get("button_back", 70, 70)
+        img_button_back_hover = self.resources.get("button_back_hover", 70, 70)
+        img_button_create_game = self.resources.get("button_create_game", 70, 70)
+        img_button_create_game_hover = self.resources.get("button_create_game_hover", 70, 70)
+
+        self._batch = pyglet.graphics.Batch()
+        self._heading = create_heading("Create Game", window, self._batch)
+        self._label_name = pyglet.text.Label(
+            "Room Name",
+            font_name="Poppins",
+            font_size=24,
+            bold=True,
+            batch=self._batch,
+            anchor_x="center",
+            anchor_y="center",
+            align="center",
+            color=(53, 55, 67, 255),
+            x=self.window.width // 2 - 200,
+            y=595,
+        )
+        self._text_entry_name = t = pyglet.gui.TextEntry(
+            f"Ludo Match {random.randint(1000, 9999)}",
+            x=self.window.width // 2 - 50,
+            y=570,
+            width=350,
+            batch=self._batch,
+        )
+        t._pad = 4
+        t.height = 50
+        t._doc.set_style(0, len(t._doc.text), dict(font_size=24))
+
+        self._button_back = pyglet.gui.PushButton(
+            x=(window.width - img_button_back.width) // 2 - 40,
+            y=450,
+            depressed=img_button_back,
+            pressed=img_button_back,
+            hover=img_button_back_hover,
+            batch=self._batch,
+        )
+        self._button_create_game = pyglet.gui.PushButton(
+            x=((window.width - img_button_create_game.width) // 2) + 40,
+            y=450,
+            depressed=img_button_create_game,
+            pressed=img_button_create_game,
+            hover=img_button_create_game_hover,
+            batch=self._batch,
+        )
+        self._button_create_game.set_handler("on_press", self._handle_create_game_press)
+        self._button_back.set_handler("on_press", self._handle_back_press)
+
+    def _handle_create_game_press(self) -> None:
+        self.window.connection.create_game(name=self._text_entry_name.value)
+        self.window.refresh_games()
+        self.window.scenes.setup_scene(GamesManager)
+
+    def _handle_back_press(self) -> None:
+        self.window.scenes.setup_scene(GamesManager)
+
+    def setup(self) -> None:
+        self.window.push_handlers(self._button_back)
+        self.window.push_handlers(self._button_create_game)
+        self.window.push_handlers(self._text_entry_name)
+
+    def cleanup(self) -> None:
+        self.window.remove_handlers(self._button_back)
+        self.window.remove_handlers(self._button_create_game)
+        self.window.remove_handlers(self._text_entry_name)
+
+    def draw(self) -> None:
+        background = self.resources.get("background_main_menu")
+        background.blit(0, 0)
+        self._batch.draw()
+

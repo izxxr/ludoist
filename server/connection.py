@@ -24,11 +24,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Tuple
 from server import responses
+from common.games import Game
 
 import threading
 import logging
 import time
 import json
+import oblate
 
 if TYPE_CHECKING:
     from server import LudoistServer
@@ -103,7 +105,7 @@ class Connection(threading.Thread):
             packet = self._sock.recv(1024)
         except (ConnectionResetError, ConnectionAbortedError) as e:
             if self._running:
-                _log.error(f"Unexpected connection abortion with {self._addr} - closing connection")
+                _log.info(f"Client {self._addr} has closed the connection")
                 self._close()
 
             return
@@ -120,6 +122,21 @@ class Connection(threading.Thread):
             games = self._server.list_games()
             msg = responses.make_list_games_message(games)
             return self._send_data(msg)
+
+        if op == responses.OP_CODE_CREATE_GAME:
+            try:
+                game = Game(data)  # type: ignore
+            except oblate.ValidationError as e:
+                msg = responses.make_error_message(
+                    responses.ERR_GAME_CREATION_FAILED,
+                    "invalid game data",
+                    {"errors": e.raw()}
+                )
+                return self._send_data(msg)
+            else:
+                self._server.add_game(game)
+                msg = responses.make_message(responses.OP_CODE_GAME_CREATED, game.dump())
+                return self._send_data(msg)
 
         msg = responses.make_error_message(responses.ERR_INVALID_DATA_FORMAT, "invalid OP code")
         self._send_data(msg)
