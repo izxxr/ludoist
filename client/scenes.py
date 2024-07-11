@@ -22,7 +22,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict
 
 from client.scenes_manager import Scene
 from client.widgets import StateAwareToggle
@@ -63,16 +63,16 @@ def create_heading(text: str, window: LudoistWindow, batch: pyglet.graphics.Batc
     return rect, label
 
 
-def _shorten(text: str) -> str:
-    if len(text) > 15:
-        return text[0:15] + "..."
+def _shorten(text: str, lim: int = 15) -> str:
+    if len(text) > lim:
+        return text[0:lim] + "..."
     return text
 
 class MainMenu(Scene):
     """Represents the main-menu scene."""
 
-    def __init__(self, window: LudoistWindow) -> None:
-        super().__init__(window)
+    def __init__(self, window: LudoistWindow, state: Dict[str, Any]) -> None:
+        super().__init__(window, state)
 
         img_button_play = self.resources.get("button_play")
         img_button_play_clicked = self.resources.get("button_play_clicked")
@@ -138,8 +138,8 @@ class Settings(Scene):
     # the restart message persists between scene transitions
     _show_restart_message = False
 
-    def __init__(self, window: LudoistWindow) -> None:
-        super().__init__(window)
+    def __init__(self, window: LudoistWindow, state: Dict[str, Any]) -> None:
+        super().__init__(window, state)
 
         self._batch = pyglet.graphics.Batch()
         self._settings_objects = []
@@ -236,8 +236,8 @@ class Settings(Scene):
 class GamesManager(Scene):
     """The games manager menu showing all the ongoing games."""
 
-    def __init__(self, window: LudoistWindow) -> None:
-        super().__init__(window)
+    def __init__(self, window: LudoistWindow, state: Dict[str, Any]) -> None:
+        super().__init__(window, state)
 
         img_button_back = self.resources.get("button_back", 70, 70)
         img_button_back_hover = self.resources.get("button_back_hover", 70, 70)
@@ -327,7 +327,7 @@ class GamesManager(Scene):
                 batch=self._batch,
             )
             name = pyglet.text.Label(
-                _shorten(game.name),
+                _shorten(game.name, lim=25),
                 font_name="Poppins",
                 font_size=20,
                 color=(0, 0, 0, 255),
@@ -381,7 +381,8 @@ class GamesManager(Scene):
 
     def _handle_info_press(self, game_id: str):
         def _handler():
-            print(self.window.games[game_id].name)
+            state = {"game": self.window.games[game_id]}
+            self.window.scenes.setup_scene(GameInfo, state)
 
         return _handler
 
@@ -425,8 +426,8 @@ class GamesManager(Scene):
 class CreateGame(Scene):
     """Game creation screen."""
 
-    def __init__(self, window: LudoistWindow) -> None:
-        super().__init__(window)
+    def __init__(self, window: LudoistWindow, state: Dict[str, Any]) -> None:
+        super().__init__(window, state)
 
         img_button_back = self.resources.get("button_back", 70, 70)
         img_button_back_hover = self.resources.get("button_back_hover", 70, 70)
@@ -482,3 +483,85 @@ class CreateGame(Scene):
         background.blit(0, 0)
         self._batch.draw()
 
+
+class GameInfo(Scene):
+    """Information about a game."""
+    def __init__(self, window: LudoistWindow, state: Dict[str, Any]) -> None:
+        super().__init__(window, state)
+
+        self._game = g = state["game"]
+
+        img_button_back = self.resources.get("button_back", 50, 50)
+        img_button_back_hover = self.resources.get("button_back_hover", 50, 50)
+        icon_players = self.resources.get("icon_players", 50, 50)
+        icon_security = self.resources.get("icon_locked" if g.password_protected else "icon_open", 50, 50)
+        icon_info = self.resources.get("icon_info", 50, 50)
+
+        self._batch = pyglet.graphics.Batch()
+        self._labels = [
+            create_heading(_shorten(self._game.name), window, self._batch),
+        ]
+        self._widgets = [
+            pyglet.gui.PushButton(x=(window.width - img_button_back.width) // 2, y=350,
+                                  depressed=img_button_back, pressed=img_button_back,
+                                  hover=img_button_back_hover, batch=self._batch),
+        ]
+        self._widgets[0].set_handler("on_press", self._handle_back_press)
+        self._info_components = []
+        self._info_y = 620
+        self._add_info("Room Name", _shorten(g.name, 25), icon_info)
+        self._add_info("Allowed Players", "2", icon_players)
+        self._add_info("Players Joined", str(len(g.players)), icon_players)
+        self._add_info("Join Security", "Password" if g.password_protected else "Open", icon_security)
+
+    def _handle_back_press(self) -> None:
+        self.window.scenes.setup_scene(GamesManager)
+
+    def _add_info(self, option: str, value: str, icon: Any):
+        obj = pyglet.gui.PushButton(
+            x=self.window.width // 2 - 270,
+            y=self._info_y - 25,
+            depressed=icon,
+            pressed=icon,
+            batch=self._batch,
+        )
+        self._info_components.append(obj)
+        obj = pyglet.text.Label(
+            option + ":",
+            font_name="Poppins",
+            font_size=24,
+            bold=True,
+            batch=self._batch,
+            anchor_x="center",
+            anchor_y="center",
+            align="center",
+            color=(53, 55, 67, 255),
+            x=self.window.width // 2 - 50,
+            y=self._info_y,
+        )
+        self._info_components.append(obj)
+        obj = pyglet.text.Label(
+            value,
+            font_name="Poppins",
+            font_size=24,
+            batch=self._batch,
+            anchor_y="center",
+            color=(53, 55, 67, 255),
+            x=self.window.width // 2 + 130,
+            y=self._info_y,
+        )
+        self._info_components.append(obj)
+        self._info_y -= 50
+
+    def setup(self) -> None:
+        for widget in self._widgets:
+            self.window.push_handlers(widget)
+
+    def cleanup(self) -> None:
+        for widget in self._widgets:
+            self.window.remove_handlers(widget)
+
+    def draw(self) -> None:
+        background = self.resources.get("background_main_menu")
+        background.blit(0, 0)
+        self._batch.draw()

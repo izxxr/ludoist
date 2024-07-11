@@ -22,7 +22,7 @@
 
 from __future__ import annotations
 
-from typing import Type, Optional, TYPE_CHECKING
+from typing import Type, Optional, Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from client.window import LudoistWindow
@@ -35,8 +35,9 @@ __all__ = (
 class Scene:
     """Abstract class for describing a specific scene in-game."""
 
-    def __init__(self, window: LudoistWindow):
+    def __init__(self, window: LudoistWindow, state: Dict[str, Any]):
         self.window = window
+        self.state = state
         self.resources = window.resources
 
     def get_name(self) -> str:
@@ -85,9 +86,11 @@ class ScenesManager:
 
         self._current_scene.draw()
 
-    def setup_scene(self, scene: Type[Scene]) -> None:
+    def setup_scene(self, scene: Type[Scene], state: Optional[Dict[str, Any]] = None) -> None:
         if self._current_scene:
             self._current_scene.cleanup()
+        if state is None:
+            state = {}
 
-        self._current_scene = scene(self._window)
+        self._current_scene = scene(self._window, state)
         self._current_scene.setup()
