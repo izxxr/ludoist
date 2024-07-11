@@ -64,7 +64,7 @@ class Connection(threading.Thread):
 
     def _recv_packet(self) -> Tuple[int, Any]:
         try:
-            packet = self._sock.recv(1024)
+            packet = self._sock.recv(3000)
             data = json.loads(packet.decode())
         except Exception as e:
             if self._running:

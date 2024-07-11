@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+from typing import Dict, TYPE_CHECKING
 from client.resource_manager import ResourceManager
 from client.scenes_manager import ScenesManager
 from client.config import Configuration
@@ -29,6 +30,9 @@ from client.connection import Connection
 from client import scenes
 
 import pyglet
+
+if TYPE_CHECKING:
+    from common.games import Game
 
 __all__ = (
     "LudoistWindow",
@@ -51,12 +55,16 @@ class LudoistWindow(pyglet.window.Window):
         self.scenes = ScenesManager(self)
         self.scenes.setup_scene(scenes.MainMenu)
         self.connection = Connection(self)
+        self.games: Dict[str, Game] = {}
         self.connection.start()
         self.refresh_games()
 
     def refresh_games(self) -> None:
         self.connection.wait_until_ready()
-        self.games = self.connection.list_games()
+        games = self.connection.list_games()
+
+        for game in games:
+            self.games[game.id] = game
 
     def on_close(self):
         self.connection._close()

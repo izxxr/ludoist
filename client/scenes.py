@@ -63,6 +63,11 @@ def create_heading(text: str, window: LudoistWindow, batch: pyglet.graphics.Batc
     return rect, label
 
 
+def _shorten(text: str) -> str:
+    if len(text) > 15:
+        return text[0:15] + "..."
+    return text
+
 class MainMenu(Scene):
     """Represents the main-menu scene."""
 
@@ -239,7 +244,9 @@ class GamesManager(Scene):
         img_button_create_game = self.resources.get("button_create_game", 70, 70)
         img_button_create_game_hover = self.resources.get("button_create_game_hover", 70, 70)
 
+        self.window.refresh_games()
         self._games_ui = []
+        self._icons = []
         self._batch = pyglet.graphics.Batch()
         self._shapes = [
             pyglet.shapes.Box(x=(window.width - 800) // 2, y=180, width=800, height=450,
@@ -277,18 +284,122 @@ class GamesManager(Scene):
 
     def _populate_games(self) -> None:
         loading_text = self._labels[2]
-        if len(self.window.games) == 0:
+        games = self.window.games
+        x = 260
+        y = 550
+
+        if len(games) == 0:
             loading_text.text = "No active games yet"
         else:
-            loading_text.text = f"{len(self.window.games)} games available"
+            loading_text.text = ""
+
+        self._games_ui = []
+
+        for game in games.values():
+            if game.password_protected:
+                icon_entry = self.window.resources.get("icon_locked", 50, 50)
+            else:
+                icon_entry = self.window.resources.get("icon_open", 50, 50)
+
+            icon_players = self.window.resources.get("icon_players", 50, 50)
+            icon_info = self.window.resources.get("icon_info", 50, 50)
+            icon_info_hover = self.window.resources.get("icon_info_hover", 50, 50)
+
+            if game.is_joinable():
+                icon_join = self.window.resources.get("icon_join", 50, 50)
+                icon_join_hover = self.window.resources.get("icon_join_hover", 50, 50)
+            else:
+                icon_join = self.window.resources.get("icon_no_join", 50, 50)
+                icon_join_hover = self.window.resources.get("icon_no_join", 50, 50)
+
+            icon_entry = pyglet.gui.PushButton(
+                x=x,
+                y=y,
+                depressed=icon_entry,
+                pressed=icon_entry,
+                batch=self._batch,
+            )
+            icon_players = pyglet.gui.PushButton(
+                x=x + 490,
+                y=y + 8,
+                depressed=icon_players,
+                pressed=icon_players,
+                batch=self._batch,
+            )
+            name = pyglet.text.Label(
+                _shorten(game.name),
+                font_name="Poppins",
+                font_size=20,
+                color=(0, 0, 0, 255),
+                x=x + 60,
+                y=y + 17,
+                bold=True,
+                batch=self._batch,
+            )
+            players = pyglet.text.Label(
+                f"{len(game.players)}/{game.rules.allowed_players}",
+                font_name="Poppins",
+                font_size=22,
+                color=(53, 55, 67, 255),
+                x=x + 550,
+                y=y + 17,
+                bold=True,
+                batch=self._batch,
+            )
+            info_button = pyglet.gui.PushButton(
+                x=x + 630,
+                y=y + 8,
+                depressed=icon_info,
+                pressed=icon_info,
+                hover=icon_info_hover,
+                batch=self._batch,
+            )
+            join_button = pyglet.gui.PushButton(
+                x=x + 700,
+                y=y + 8,
+                depressed=icon_join,
+                pressed=icon_join,
+                hover=icon_join_hover,
+                batch=self._batch,
+            )
+
+            if game.is_joinable():
+                join_button.set_handler("on_press", self._handle_join_press(game.id))
+
+            info_button.set_handler("on_press", self._handle_info_press(game.id))
+            entry = (name, players, info_button, join_button, icon_entry, icon_players)
+
+            self._games_ui.append(entry)
+
+            y -= 60
+
+    def _handle_join_press(self, game_id: str):
+        def _handler():
+            print(self.window.games[game_id].name)
+
+        return _handler
+
+    def _handle_info_press(self, game_id: str):
+        def _handler():
+            print(self.window.games[game_id].name)
+
+        return _handler
 
     def setup(self) -> None:
         for button in self._buttons:
             self.window.push_handlers(button)
 
+        for entry in self._games_ui:
+            self.window.push_handlers(entry[2])
+            self.window.push_handlers(entry[3])
+
     def cleanup(self) -> None:
         for button in self._buttons:
             self.window.remove_handlers(button)
+
+        for entry in self._games_ui:
+            self.window.remove_handlers(entry[2])
+            self.window.remove_handlers(entry[3])
 
     def draw(self) -> None:
         background = self.resources.get("background_main_menu")
@@ -353,7 +464,6 @@ class CreateGame(Scene):
 
     def _handle_create_game_press(self) -> None:
         self.window.connection.create_game(name=self._widgets[0].value)
-        self.window.refresh_games()
         self.window.scenes.setup_scene(GamesManager)
 
     def _handle_back_press(self) -> None:

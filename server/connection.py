@@ -102,7 +102,7 @@ class Connection(threading.Thread):
 
     def _listen(self) -> None:
         try:
-            packet = self._sock.recv(1024)
+            packet = self._sock.recv(3000)
         except (ConnectionResetError, ConnectionAbortedError) as e:
             if self._running:
                 _log.info(f"Client {self._addr} has closed the connection")
