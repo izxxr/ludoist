@@ -25,6 +25,7 @@ from __future__ import annotations
 from typing import List, Optional, Dict, Tuple
 from server.connection import Connection
 from common.games import Game
+from common.config import ServerConfiguration
 
 import socket
 import logging
@@ -50,8 +51,9 @@ class LudoistServer:
     the state of ongoing games.
     """
     def __init__(self) -> None:
+        self._config = ServerConfiguration()
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.bind((HOST, PORT))
+        self._sock.bind((self._config.host, self._config.port))
         self._connections: Dict[Tuple[str, int], Connection] = {}
         self._games: Dict[str, Game] = {}
         self._running = False

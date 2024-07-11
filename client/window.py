@@ -23,9 +23,9 @@
 from __future__ import annotations
 
 from typing import Dict, TYPE_CHECKING
+from common.config import ClientConfiguration
 from client.resource_manager import ResourceManager
 from client.scenes_manager import ScenesManager
-from client.config import Configuration
 from client.connection import Connection
 from client import scenes
 
@@ -43,7 +43,7 @@ class LudoistWindow(pyglet.window.Window):
     """The Ludoist client window."""
 
     def __init__(self) -> None:
-        self.cfg = Configuration("config.json")
+        self.cfg = ClientConfiguration()
 
         super().__init__(
             width=1280,

@@ -28,11 +28,13 @@ import json
 
 __all__ = (
     "Configuration",
+    "ClientConfiguration",
+    "ServerConfiguration",
 )
 
 
 class Configuration:
-    """Reads and manages configuration of client."""
+    """Reads and manages configuration."""
 
     def __init__(self, filename: str):
         self._filename = filename
@@ -48,6 +50,8 @@ class Configuration:
 
     def _assign_attrs(self):
         self.fullscreen = self._config.get("fullscreen", True)
+        self.server_ip = self._config.get("server_ip", "127.0.0.1")
+        self.server_port = self._config.get("server_port", 4590)
 
     def update(self, data: Dict[str, Any]) -> None:
         self._config.update(data)
@@ -55,3 +59,22 @@ class Configuration:
 
         with open(self._filename, "w") as f:
             json.dump(self._config, f, indent=4)
+
+
+class ClientConfiguration(Configuration):
+    """Represents the client side configuration."""
+    def __init__(self):
+        super().__init__("client_config.json")
+
+    def _assign_attrs(self):
+        self.fullscreen = self._config.get("fullscreen", False)
+
+
+class ServerConfiguration(Configuration):
+    """Represents the server side configuration."""
+    def __init__(self):
+        super().__init__("server_config.json")
+
+    def _assign_attrs(self):
+        self.host = self._config.get("host", "127.0.0.1")
+        self.port = self._config.get("port", 4590)
