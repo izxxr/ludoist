@@ -510,7 +510,7 @@ class GameInfo(Scene):
         self._info_components = []
         self._info_y = 620
         self._add_info("Room Name", _shorten(g.name, 25), icon_info)
-        self._add_info("Allowed Players", "2", icon_players)
+        self._add_info("Allowed Players", str(g.rules.allowed_players), icon_players)
         self._add_info("Players Joined", str(len(g.players)), icon_players)
         self._add_info("Join Security", "Password" if g.password_protected else "Open", icon_security)
 
