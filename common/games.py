@@ -105,13 +105,13 @@ class Game(Schema):
 
         [
             [
-                [-1, -1], [2, 3], [1, 2], [0, 1]
+                [1, -1, -1], [0, 2, 3], [3, 1, 2], [2, 0, 1]
             ],
             ... (three more similar lists)
         ]
 
-    In this example, the red pieces are at positions (-1, -1) (yard), (2, 3),
-    (1, 2), (0, 1).
+    In this example, the red pieces are at positions (1, -1, -1) (yard), (0, 2, 3),
+    (3, 1, 2), (2, 0, 1).
 
     For information on how individual piece positions are represented and
     interpreted, see the following gist:

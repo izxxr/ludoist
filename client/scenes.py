@@ -68,6 +68,90 @@ def _shorten(text: str, lim: int = 15) -> str:
         return text[0:lim] + "..."
     return text
 
+
+position_coordinates = {
+    (0, -1, -1): [(88, 88), (88, 217), (233, 217), (233, 88)],
+    (1, -1, -1): [(88, 864), (233, 864), (233, 735), (88, 735)],
+    (2, -1, -1): [(878, 735), (733, 735), (733, 863)],
+    (3, -1, -1): ...,
+    (0, 0, 0): ...,
+    (0, 0, 1): ...,
+    (0, 0, 2): ...,
+    (0, 0, 3): ...,
+    (0, 0, 4): ...,
+    (0, 0, 5): ...,
+    (0, 1, 0): ...,
+    (0, 1, 1): ...,
+    (0, 1, 2): ...,
+    (0, 1, 3): ...,
+    (0, 1, 4): ...,
+    (0, 1, 5): ...,
+    (0, 1, 6): ...,
+    (0, 2, 0): (390, 2),
+    (0, 2, 1): (390, 64),
+    (0, 2, 2): (390, 128),
+    (0, 2, 3): (390, 191),
+    (0, 2, 4): (390, 254),
+    (0, 2, 5): (390, 316),
+    (1, 0, 0): (315, 393),
+    (1, 0, 1): (253, 393),
+    (1, 0, 2): (190, 393),
+    (1, 0, 3): (127, 393),
+    (1, 0, 4): (64, 393),
+    (1, 0, 5): (2, 393),
+    (1, 1, 0): (2, 483),
+    (1, 1, 1): (64, 483),
+    (1, 1, 2): (127, 483),
+    (1, 1, 3): (190, 483),
+    (1, 1, 4): (253, 483),
+    (1, 1, 5): (315, 483),
+    (1, 1, 6): (383, 483),
+    (1, 2, 0): (2, 571),
+    (1, 2, 1): (64, 571),
+    (1, 2, 2): (127, 571),
+    (1, 2, 3): (190, 571),
+    (1, 2, 4): (253, 571),
+    (1, 2, 5): (315, 571),
+    (2, 0, 0): (393, 648),
+    (2, 0, 1): (393, 710),
+    (2, 0, 2): (393, 773),
+    (2, 0, 3): (393, 836),
+    (2, 0, 4): (393, 899),
+    (2, 0, 5): (393, 962),
+    (2, 1, 0): (482, 962),
+    (2, 1, 1): (482, 899),
+    (2, 1, 2): (482, 836),
+    (2, 1, 3): (482, 773),
+    (2, 1, 4): (482, 710),
+    (2, 1, 5): (482, 648),
+    (2, 1, 6): (482, 716),
+    (2, 2, 0): (571, 962),
+    (2, 2, 1): (571, 899),
+    (2, 2, 2): (571, 836),
+    (2, 2, 3): (571, 773),
+    (2, 2, 4): (571, 710),
+    (2, 2, 5): (571, 648),
+    (3, 0, 0): ...,
+    (3, 0, 1): ...,
+    (3, 0, 2): ...,
+    (3, 0, 3): ...,
+    (3, 0, 4): ...,
+    (3, 0, 5): ...,
+    (3, 1, 0): ...,
+    (3, 1, 1): ...,
+    (3, 1, 2): ...,
+    (3, 1, 3): ...,
+    (3, 1, 4): ...,
+    (3, 1, 5): ...,
+    (3, 1, 6): ...,
+    (3, 2, 0): ...,
+    (3, 2, 1): ...,
+    (3, 2, 2): ...,
+    (3, 2, 3): ...,
+    (3, 2, 4): ...,
+    (3, 2, 5): ...,
+}
+
 class MainMenu(Scene):
     """Represents the main-menu scene."""
 
@@ -211,6 +295,9 @@ class Settings(Scene):
 
     def _handle_back_press(self) -> None:
         self.window.scenes.setup_scene(MainMenu)
+
+    def get_name(self) -> str:
+        return "settings"
 
     def setup(self) -> None:
         for item in self._settings_objects:
@@ -375,7 +462,8 @@ class GamesManager(Scene):
 
     def _handle_join_press(self, game_id: str):
         def _handler():
-            print(self.window.games[game_id].name)
+            state = {"game": self.window.games[game_id]}
+            self.window.scenes.setup_scene(GameView, state)
 
         return _handler
 
@@ -385,6 +473,9 @@ class GamesManager(Scene):
             self.window.scenes.setup_scene(GameInfo, state)
 
         return _handler
+
+    def get_name(self) -> str:
+        return "game_manager"
 
     def setup(self) -> None:
         for button in self._buttons:
@@ -470,6 +561,9 @@ class CreateGame(Scene):
     def _handle_back_press(self) -> None:
         self.window.scenes.setup_scene(GamesManager)
 
+    def get_name(self) -> str:
+        return "create_game"
+
     def setup(self) -> None:
         for widget in self._widgets:
             self.window.push_handlers(widget)
@@ -553,6 +647,9 @@ class GameInfo(Scene):
         self._info_components.append(obj)
         self._info_y -= 50
 
+    def get_name(self) -> str:
+        return "game_info"
+
     def setup(self) -> None:
         for widget in self._widgets:
             self.window.push_handlers(widget)
@@ -563,5 +660,37 @@ class GameInfo(Scene):
 
     def draw(self) -> None:
         background = self.resources.get("background_main_menu")
+        background.blit(0, 0)
+        self._batch.draw()
+
+
+class GameView(Scene):
+    """The main game."""
+    def __init__(self, window: LudoistWindow, state: Dict[str, Any]) -> None:
+        super().__init__(window, state)
+
+        img_piece_yellow = self.window.resources.get("piece_yellow", 60, 60)
+
+        self._batch = pyglet.graphics.Batch()
+        self._position = (0, 0)
+        self._but = pyglet.gui.PushButton(
+            batch=self._batch,
+            depressed=img_piece_yellow,
+            pressed=img_piece_yellow,
+            x=self._position[0],
+            y=self._position[1],
+        )
+
+    def get_name(self) -> str:
+        return "game_view"
+
+    def setup(self) -> None:
+        ...
+
+    def cleanup(self) -> None:
+        ...
+
+    def draw(self) -> None:
+        background = self.resources.get("ludo_board")
         background.blit(0, 0)
         self._batch.draw()
