@@ -30,7 +30,6 @@ from client.connection import Connection
 from client import scenes
 
 import pyglet
-import pyglet.window.mouse
 
 if TYPE_CHECKING:
     from common.games import Game
@@ -59,29 +58,6 @@ class LudoistWindow(pyglet.window.Window):
         self.games: Dict[str, Game] = {}
         self.connection.start()
         self.refresh_games()
-
-    # This is temporary handler only for debugging purpose.
-    def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
-        scene = self.scenes.get_current_scene()
-        if scene.get_name() != "game_view":  # type: ignore
-            return
-
-        x, y = scene._position # type: ignore
-
-        if modifiers & pyglet.window.key.MOD_SHIFT:
-            inc = -1
-        else:
-            inc = 1
-
-        if button == pyglet.window.mouse.LEFT:
-            x = x + inc
-        else:
-            y = y + inc
-
-        scene._position = (x, y)  # type: ignore
-        print(scene._position)  # type: ignore
-        scene._but.x = x  # type: ignore
-        scene._but.y = y  # type: ignore
 
     def refresh_games(self) -> None:
         self.connection.wait_until_ready()
