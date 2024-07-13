@@ -63,6 +63,12 @@ def create_heading(text: str, window: LudoistWindow, batch: pyglet.graphics.Batc
     return rect, label
 
 
+def create_warning(text: str, window: pyglet.window.Window, batch: pyglet.graphics.Batch):
+    return pyglet.text.Label(text, font_name="Poppins",
+                              font_size=20, bold=True, stretch=True, batch=batch,
+                              anchor_x="center", anchor_y="center", align="center",
+                              x=window.width // 2, y=300)
+
 def _shorten(text: str, lim: int = 15) -> str:
     if len(text) > lim:
         return text[0:lim] + "..."
@@ -234,10 +240,7 @@ class Settings(Scene):
         ]
         self._labels = [
             create_heading("Display Settings", window, self._batch),
-            pyglet.text.Label("Restart is needed for changes to apply.", font_name="Poppins",
-                              font_size=20, bold=True, stretch=True, batch=self._batch,
-                              anchor_x="center", anchor_y="center", align="center",
-                              x=self.window.width // 2, y=300)
+            create_warning("Restart is needed for changes to apply.", window, self._batch),
         ]
         self._labels[1].visible = self.__class__._show_restart_message
         self._shapes[0].visible = self.__class__._show_restart_message
@@ -463,7 +466,7 @@ class GamesManager(Scene):
     def _handle_join_press(self, game_id: str):
         def _handler():
             state = {"game": self.window.games[game_id]}
-            self.window.scenes.setup_scene(GameView, state)
+            self.window.scenes.setup_scene(JoinGame, state)
 
         return _handler
 
@@ -649,6 +652,70 @@ class GameInfo(Scene):
 
     def get_name(self) -> str:
         return "game_info"
+
+    def setup(self) -> None:
+        for widget in self._widgets:
+            self.window.push_handlers(widget)
+
+    def cleanup(self) -> None:
+        for widget in self._widgets:
+            self.window.remove_handlers(widget)
+
+    def draw(self) -> None:
+        background = self.resources.get("background_main_menu")
+        background.blit(0, 0)
+        self._batch.draw()
+
+
+class JoinGame(Scene):
+    """Game prejoin screen."""
+
+    def __init__(self, window: LudoistWindow, state: Dict[str, Any]) -> None:
+        super().__init__(window, state)
+
+        img_button_back = self.resources.get("button_back", 70, 70)
+        img_button_back_hover = self.resources.get("button_back_hover", 70, 70)
+        img_button_join = self.resources.get("icon_join", 70, 70)
+        img_button_join_hover = self.resources.get("icon_join_hover", 70, 70)
+
+        self._batch = pyglet.graphics.Batch()
+        self._labels = [
+            create_heading("Join Game", window, self._batch),
+            pyglet.text.Label("Player Name", font_name="Poppins", font_size=24, bold=True,
+                              batch=self._batch, anchor_x="center", anchor_y="center",
+                              align="center", color=(53, 55, 67, 255),
+                              x=self.window.width // 2 - 200, y=595),
+        ]
+        self._widgets = [
+            pyglet.gui.TextEntry(f"Player {random.randint(1000, 9999)}",
+                                 x=self.window.width // 2 - 50, y=570, width=350,
+                                 batch=self._batch),
+
+            pyglet.gui.PushButton(x=(window.width - img_button_back.width) // 2 - 40, y=450,
+                                  depressed=img_button_back, pressed=img_button_back,
+                                  hover=img_button_back_hover, batch=self._batch),
+
+            pyglet.gui.PushButton(x=((window.width - img_button_join.width) // 2) + 40,
+                                  y=450, depressed=img_button_join, pressed=img_button_join,
+                                  hover=img_button_join_hover, batch=self._batch),
+        ]
+        t = self._widgets[0]
+        t._pad = 4
+        t.height = 50
+        t._doc.set_style(0, len(t._doc.text), dict(font_size=24))
+
+        self._widgets[1].set_handler("on_press", self._handle_back_press)
+        self._widgets[2].set_handler("on_press", self._handle_join_game_press)
+
+    def _handle_join_game_press(self) -> None:
+        self.window.connection.create_game(name=self._widgets[0].value)
+        self.window.scenes.setup_scene(GameView, state=self.state)
+
+    def _handle_back_press(self) -> None:
+        self.window.scenes.setup_scene(GamesManager)
+
+    def get_name(self) -> str:
+        return "join_game"
 
     def setup(self) -> None:
         for widget in self._widgets:

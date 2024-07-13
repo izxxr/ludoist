@@ -22,8 +22,8 @@
 
 from __future__ import annotations
 
-from typing import Dict, Union, Optional, TYPE_CHECKING
-from pyglet import image, resource
+from typing import Dict, Union, Optional, Sequence, Any, TYPE_CHECKING
+from pyglet import image, resource, font
 
 import os
 
@@ -47,27 +47,37 @@ class ResourceManager:
         self._window = window
         self._resources_dir = resources_dir
         self._resources: Dict[str, ResourceT] = {}
-        self._load()
+        self._load("images", ["png"], resource.image)
+        self._load("fonts", ["ttf"], resource.add_font, load_font=True)
 
     def _rsrcimage(self, name: str) -> Union[image.Texture, image.TextureRegion]:
         path = self._resources_dir + "/" + name
         return resource.image(path)
 
-    def _load(self) -> None:
-        for filename in os.listdir(self._resources_dir):
-            if filename.endswith(".png"):
-                name = filename.replace(".png", "")
-                self._resources.setdefault(name, self._rsrcimage(filename))
+    def _load(self, subdir: str, exts: Sequence[str], method: Any, load_font: bool = False) -> None:
+        path = "/".join((self._resources_dir, subdir))
 
-    def get(self, name: str, width: Optional[int] = None, height: Optional[int] = None) -> ResourceT:
+        for filename in os.listdir(path):
+            if filename.endswith(tuple(exts)):
+                name = filename.replace(".png", "")
+                filepath = "/".join((path, filename))
+                self._resources.setdefault(name, method(filepath))
+
+                if load_font:
+                    font_name, *_ = name.split("-")
+                    font.load(font_name)
+
+    def get(self, name: str, width: Optional[int] = None, height: Optional[int] = None, load_font: bool = True) -> ResourceT:
         """Get a resource by its name."""
         try:
             resource = self._resources[name]
         except KeyError:
             raise RuntimeError("invalid resource") from None
         else:
-            if width:
-                resource.width = width
-            if height:
-                resource.height = height
+            if isinstance(resource, (image.Texture, image.TextureRegion)):
+                if width:
+                    resource.width = width
+                if height:
+                    resource.height = height
+
             return resource
