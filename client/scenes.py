@@ -708,7 +708,6 @@ class JoinGame(Scene):
         self._widgets[2].set_handler("on_press", self._handle_join_game_press)
 
     def _handle_join_game_press(self) -> None:
-        self.window.connection.create_game(name=self._widgets[0].value)
         self.window.scenes.setup_scene(GameView, state=self.state)
 
     def _handle_back_press(self) -> None:

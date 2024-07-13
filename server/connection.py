@@ -76,7 +76,12 @@ class Connection(threading.Thread):
 
     def _send_data(self, data: Any = None) -> None:
         msg = json.dumps(data).encode()
-        self._sock.send(msg)
+        try:
+            self._sock.send(msg)
+        except BrokenPipeError:
+            _log.error(f"Could not send data to client {self._addr} (broken pipe) - closing connection")
+            self._close()
+            return
 
     def _process_packet(self, packet: bytes):
         try:
